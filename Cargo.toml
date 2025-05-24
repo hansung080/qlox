@@ -2,5 +2,14 @@
 name = "qlox"
 version = "0.1.0"
 edition = "2024"
+authors = ["Han-Seong Kwon <hansung080@hanmail.net>"]
 
 [dependencies]
+qlox-macros = { version = "=0.1.0", path = "macros" }
+thiserror = "2.0.12"
+clap = { version = "4.5.38", features = ["derive"] }
+text-colorizer = "1.0.0"
+clearscreen = "4.0.1"
+
+[workspace]
+members = ["macros"]
