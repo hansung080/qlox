@@ -1,54 +1,95 @@
 use thiserror::Error;
-use qlox_macros::ResolveError;
+use qlox_macros::ResolveSnippet;
+use crate::consts::tag::ERROR;
+use crate::src::{Index, Snippet};
 use crate::token::{Token, TokenKind};
-use crate::loc::SrcLoc;
+use crate::utils::string::{Substring, SubstringError};
 
-#[derive(Error, Debug, ResolveError)]
+#[derive(Error, Debug, ResolveSnippet)]
 pub enum Error {
-    #[error("unexpected char `{c}` at {loc:?}")]
+    #[error("{ERROR}: unexpected char `{c}`\n\n{snippet}\n")]
     UnexpectedChar {
-        loc: SrcLoc,
+        snippet: Snippet,
         c: char,
+    },
+
+    #[error("{ERROR}: invalid utf-8\n\n{snippet}\n")]
+    InvalidUtf8 {
+        snippet: Snippet,
     },
 }
 
-pub struct Scanner {
-    source: Vec<u8>,
-    tokens: Vec<Token>,
-    start: usize,
-    current: usize,
-    line: usize,
+impl From<SubstringError> for Error {
+    fn from(error: SubstringError) -> Self {
+        Error::InvalidUtf8 {
+            snippet: Snippet::new(error.range.start + error.source.utf8_error().valid_up_to()),
+        }
+    }
 }
 
-impl Scanner {
-    pub fn new(source: Vec<u8>) -> Self {
+pub struct Scanner<'a> {
+    source: &'a [u8],
+    next: Index,
+    token_start: Index,
+}
+
+impl<'a> Scanner<'a> {
+    pub fn new(source: &'a [u8]) -> Self {
         Scanner {
             source,
-            tokens: Vec::new(),
-            start: 0,
-            current: 0,
-            line: 1,
+            next: 0,
+            token_start: 0,
         }
     }
 
-    pub fn scan_tokens(&mut self) -> &[Token] {
-        while !self.is_ended() {
-            self.start = self.current;
-            self.scan_token();
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, Vec<Error>> {
+        let mut tokens = Vec::new();
+        let mut errors = Vec::new();
+        while let Some(&c) = self.next() {
+            self.token_start = self.next - 1;
+
+            let token = self.scan_token(c)
+                .and_then(|ok| ok.map(|k| {
+                    Ok::<Token, Error>(Token {
+                        kind: k,
+                        lexeme: self.source.substring(self.token_start..self.next)?,
+                        offset: self.token_start,
+                    })
+                }).transpose());
+
+            match token {
+                Ok(Some(token)) => tokens.push(token),
+                Ok(None) => (),
+                Err(e) => errors.push(e),
+            }
         }
-        self.tokens.push(Token::new(TokenKind::Eof, String::new(), self.line));
-        &self.tokens
+
+        tokens.push(Token {
+            kind: TokenKind::Eof,
+            lexeme: String::new(),
+            offset: self.next - 1,
+        });
+
+        if errors.is_empty() {
+            Ok(tokens)
+        } else {
+            Err(errors)
+        }
     }
 
-    fn scan_token(&self) {
-        todo!()
+    fn scan_token(&mut self, c: u8) -> Result<Option<TokenKind>, Error> {
+        match c {
+            b'(' => Ok(Some(TokenKind::LeftParen)),
+            _ => Err(Error::UnexpectedChar {
+                snippet: Snippet::new(self.token_start),
+                c: c as char,
+            }),
+        }
     }
 
-    fn is_ended(&self) -> bool {
-        self.current >= self.source.len()
-    }
-
-    fn advance(&self) -> char {
-        todo!()
+    fn next(&mut self) -> Option<&u8> {
+        let c = self.source.get(self.next);
+        self.next += 1;
+        c
     }
 }

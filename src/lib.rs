@@ -1,6 +1,7 @@
 mod consts;
 mod types;
-mod loc;
+mod utils;
+mod src;
 mod token;
 mod scanner;
 
@@ -10,14 +11,19 @@ use clap::Parser;
 use text_colorizer::Colorize;
 use thiserror::Error;
 use crate::consts::exitcode;
+use crate::consts::tag::ERROR;
 use crate::scanner::Scanner;
+use crate::src::{ResolveSnippet, SnippetResolver};
 
 pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("{ERROR}: {0}\n")]
     Io(#[from] io::Error),
+
+    #[error("{}", .0.iter().map(|e| format!("{e}\n")).collect::<String>())]
+    Scanner(Vec<scanner::Error>),
 }
 
 impl Error {
@@ -25,27 +31,10 @@ impl Error {
         use Error::*;
         match self {
             Io(_) => exitcode::IO_ERR,
+            Scanner(_) => exitcode::SCANNER_ERR,
         }
     }
 }
-
-// These `Display` and `From` traits are implemented by the `error` and `from` attributes of the `thiserror` crate.
-// use std::fmt::{self, Display, Formatter};
-//
-// impl Display for Error {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         use Error::*;
-//         match self {
-//             Io(e) => write!(f, "{e}"),
-//         }
-//     }
-// }
-//
-// impl From<io::Error> for Error {
-//     fn from(value: io::Error) -> Self {
-//         Error::Io(value)
-//     }
-// }
 
 /// A tree-walk interpreter for the Lox programming language
 #[derive(Parser, Debug)]
@@ -97,21 +86,24 @@ impl Lox {
             match line.trim() {
                 "version" => println!("{} {}", Lox::name(), Lox::version()),
                 "clear" => clearscreen::clear().unwrap_or_else(|e| {
-                    eprintln!("{}: {e}", "error".red().bold());
+                    eprintln!("{ERROR}: {e}");
                 }),
                 "exit" => return Ok(()),
                 _ => self.run(line.into_bytes()).unwrap_or_else(|e| {
-                    eprintln!("{}: {e}", "error".red().bold());
+                    eprint!("{e}");
                 }),
             }
         }
     }
 
     fn run(&self, source: Vec<u8>) -> Result<()> {
-        let mut scanner = Scanner::new(source);
-        for token in scanner.scan_tokens() {
-            println!("{token:?}");
-        }
+        let snippet_resolver = SnippetResolver::new(&source);
+
+        let tokens = Scanner::new(&source)
+            .scan_tokens()
+            .map_err(|e| snippet_resolver.resolve(e))
+            .map_err(Error::Scanner)?;
+
         Ok(())
     }
 }

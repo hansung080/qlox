@@ -1,4 +1,5 @@
 use std::fmt::{self, Display, Formatter};
+use crate::src::Index;
 use crate::types::Number;
 
 #[derive(Debug)]
@@ -102,19 +103,9 @@ impl Display for TokenKind {
 
 #[derive(Debug)]
 pub struct Token {
-    kind: TokenKind,
-    lexeme: String,
-    line: usize,
-}
-
-impl Token {
-    pub fn new(kind: TokenKind, lexeme: String, line: usize) -> Self {
-        Token {
-            kind,
-            lexeme,
-            line,
-        }
-    }
+    pub kind: TokenKind,
+    pub lexeme: String,
+    pub offset: Index,
 }
 
 impl Display for Token {
