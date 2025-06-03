@@ -10,6 +10,7 @@ thiserror = "2.0.12"
 clap = { version = "4.5.38", features = ["derive"] }
 text-colorizer = "1.0.0"
 clearscreen = "4.0.1"
+lazy_static = "1.5.0"
 
 [workspace]
 members = ["macros"]

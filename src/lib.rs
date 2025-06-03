@@ -13,7 +13,7 @@ use thiserror::Error;
 use crate::consts::exitcode;
 use crate::consts::tag::ERROR;
 use crate::scanner::Scanner;
-use crate::src::{ResolveSnippet, SnippetResolver};
+use crate::src::SnippetResolver;
 
 pub type Result<T> = result::Result<T, Error>;
 
@@ -99,7 +99,7 @@ impl Lox {
     fn run(&self, source: Vec<u8>) -> Result<()> {
         let snippet_resolver = SnippetResolver::new(&source);
 
-        let tokens = Scanner::new(&source)
+        let _tokens = Scanner::new(&source)
             .scan_tokens()
             .map_err(|e| snippet_resolver.resolve(e))
             .map_err(Error::Scanner)?;

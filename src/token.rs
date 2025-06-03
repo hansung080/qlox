@@ -1,8 +1,31 @@
+use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
+use lazy_static::lazy_static;
 use crate::src::Index;
 use crate::types::Number;
 
-#[derive(Debug)]
+lazy_static! {
+    pub static ref KEYWORDS: HashMap<&'static str, TokenKind> = HashMap::from([
+        ("and", TokenKind::And),
+        ("class", TokenKind::Class),
+        ("else", TokenKind::Else),
+        ("false", TokenKind::False),
+        ("for", TokenKind::For),
+        ("fun", TokenKind::Fun),
+        ("if", TokenKind::If),
+        ("nil", TokenKind::Nil),
+        ("or", TokenKind::Or),
+        ("print", TokenKind::Print),
+        ("return", TokenKind::Return),
+        ("super", TokenKind::Super),
+        ("this", TokenKind::This),
+        ("true", TokenKind::True),
+        ("var", TokenKind::Var),
+        ("while", TokenKind::While),
+    ]);
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     // Single-character tokens
     LeftParen,
@@ -28,9 +51,11 @@ pub enum TokenKind {
     LessEqual,
 
     // Literals
-    Identifier(String),
-    Number(Number),
     String(String),
+    Number(Number),
+
+    // Identifier
+    Identifier(String),
 
     // Keywords
     And,
@@ -77,9 +102,9 @@ impl Display for TokenKind {
             GreaterEqual => f.write_str(">="),
             Less => f.write_str("<"),
             LessEqual => f.write_str("<="),
-            Identifier(s) => f.write_str(s),
-            Number(n) => n.fmt(f),
             String(s) => s.fmt(f),
+            Number(n) => n.fmt(f),
+            Identifier(s) => f.write_str(s),
             And => f.write_str("and"),
             Class => f.write_str("class"),
             Else => f.write_str("else"),
@@ -101,7 +126,7 @@ impl Display for TokenKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: String,

@@ -89,7 +89,7 @@ impl Display for Location {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Snippet {
     offset: Index,
     code: Option<String>,
@@ -154,7 +154,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn src_loc_resolve() {
+    fn location_resolve() {
         let source = String::from("Alice\nBob\nChris\nDaniel\r\nEric").into_bytes();
         let cases = [
             (0, 0, 0, 0, 4),
