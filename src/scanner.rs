@@ -365,6 +365,14 @@ mod tests {
             c: '&',
         });
 
+        let mut source = "  'ab가cd'".to_string().into_bytes();
+        source[7] += 100;
+        let errors = Scanner::new(&source).scan_tokens().err().unwrap();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0], Error::InvalidUtf8Char {
+            snippet: Snippet::new(5),
+        });
+
         let source = b"  /*a";
         let errors = Scanner::new(source).scan_tokens().err().unwrap();
         assert_eq!(errors.len(), 1);
