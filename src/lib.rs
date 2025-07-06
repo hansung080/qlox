@@ -4,6 +4,7 @@ mod utils;
 mod src;
 mod token;
 mod scanner;
+mod ast;
 
 use std::{fs, io, result};
 use std::io::Write;
